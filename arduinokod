@@ -1,0 +1,83 @@
+#include "BluetoothSerial.h"
+#include <Deneyap_Servo.h>
+BluetoothSerial SerialBT;
+
+int kapikapali=1;
+int kapiacik=0;
+
+#define kirmiziLed D12
+#define yesilLed D13
+#define maviLed D14
+#define gazsensor A1
+#define buzzer D0
+#define pirsensor D1
+
+Servo servo;
+
+void setup() {
+  Serial.begin(115200);
+  SerialBT.begin("DENEYAP KART");
+  pinMode(kirmiziLed,OUTPUT);
+  pinMode(yesilLed,OUTPUT);
+  pinMode(maviLed,OUTPUT);
+  pinMode(buzzer,OUTPUT);
+  pinMode(gazsensor,OUTPUT);
+  servo.attach(D9);
+  servo.write(0);
+}
+
+void loop() {
+  if(SerialBT.available()>0){
+    int veri=SerialBT.read();
+    Serial.print("Uygulamadan gelen deger: ");
+    Serial.println(veri);
+    delay(50);
+    if(veri==1){
+      digitalWrite(kirmiziLed,HIGH);
+    }
+    if(veri==2) {
+      digitalWrite(kirmiziLed,LOW);
+    }
+    if(veri==3) {
+      digitalWrite(yesilLed,HIGH);
+    }
+    if(veri==4) {
+      digitalWrite(yesilLed,LOW);
+    }
+    if(veri==5) {
+      digitalWrite(maviLed,HIGH);
+    }
+    if(veri==6) {
+      digitalWrite(maviLed,LOW);
+    }
+    if(veri==7) {
+      if(kapikapali==1) {
+        kapikapali--;
+        kapiacik++;
+        Serial.print("Kapı kapali: ");
+        Serial.println(kapikapali);
+        Serial.print("Kapi acik: ");
+        Serial.println(kapiacik);
+      for(int derece=0;derece<=100;derece++) {
+        servo.write(derece);
+        delay(15);
+      }
+      }
+  int deger=analogRead(gazsensor);
+  SerialBT.println(deger);
+  Serial.print("Ortam gaz degeri: ");
+  Serial.println(deger);
+  delay(100);
+  if(deger<2000) {
+    digitalWrite(buzzer,LOW);  
+  }
+  if(deger>=2000) {
+    digitalWrite(buzzer,HIGH);
+  }
+  int hareket=digitalRead(pirsensor);
+  if(hareket==1) {
+    digitalWrite(buzzer,HIGH);
+  }
+    }
+  }
+}
