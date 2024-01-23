@@ -1,0 +1,159 @@
+#include <WiFi.h>
+#include <Firebase_ESP_Client.h>
+#include <Deneyap_Servo.h>
+
+#define ssid ""
+#define password ""
+
+#define API_KEY ""
+#define DATABASE_URL ""
+
+int kapikapali=1;
+int kapiacik=0;
+
+FirebaseData fbdo;
+FirebaseAuth auth;
+FirebaseConfig config;
+Servo servo1;
+
+void setup() {
+  Serial.begin(115200);
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(250);
+    Serial.print(".");
+  }
+  Serial.println("");
+  Serial.println("Aga Baglanildi");
+  Serial.print("IP adresi: ");
+  Serial.println(WiFi.localIP());
+  config.api_key = API_KEY;
+  config.database_url = DATABASE_URL;
+   if (Firebase.signUp(&config, &auth, "", "")) {
+    Serial.println("ok");
+   } 
+  else{
+    Serial.printf("%s\n", config.signer.signupError.message.c_str())
+  }
+  Firebase.begin(&config, &auth);
+  Firebase.reconnectWiFi(true);
+  pinMode(D12, OUTPUT);
+  pinMode(D13, OUTPUT);
+  pinMode(D14, OUTPUT);
+  pinMode(D15, OUTPUT);
+  pinMode(D0, OUTPUT);
+  servo.attach(D9);
+  servo1.write(0);
+  pinMode(A0, INPUT);
+  pinMode(D1, INPUT);
+
+  Firebase.RTDB.set(&fbdo, "values/gas", 0);
+  Firebase.RTDB.set(&fbdo, "values/pir", 0);
+  Firebase.RTDB.set(&fbdo, "led/1", 0);
+  Firebase.RTDB.set(&fbdo, "led/2", 0);
+  Firebase.RTDB.set(&fbdo, "led/3", 0);
+  Firebase.RTDB.set(&fbdo, "led/4", 0);
+  Firebase.RTDB.set(&fbdo, "door", 0);
+}
+
+void loop() {
+  if (Firebase.ready()) {
+    int gas = map(analogRead(A0), 0, 4095, 0, 100);
+    int movement = digitalRead(D1);
+
+    Firebase.RTDB.set(&fbdo, "values/gas", gas);
+    Firebase.RTDB.set(&fbdo, "values/pir", movement);
+
+    if (Firebase.RTDB.get(&fbdo, "door")) {
+      if (fbdo.dataType() == "int") {
+        int door = fbdo.intData();
+        if (door == 1) {
+          if (kapikapali==1) {
+        kapikapali--;
+        kapiacik++;
+        Serial.print("Kapı kapalı: ");
+        Serial.println(kapikapali);
+        Serial.print("Kapi acik: ");
+        Serial.println(kapiacik);
+      for(int derece=0;derece<=180;derece++) {
+        servo1.write(derece);
+        delay(15);
+      }    
+          }
+        }
+        else if (door == 0) {
+          if (kapiacik==1) {
+        kapikapali++;
+        kapiacik--;
+        Serial.print("Kapi kapali: ");
+        Serial.println(kapikapali);
+        Serial.print("Kapi acik: ");
+        Serial.println(kapiacik);
+      for(int derece=180;derece>0;derece--){
+        servo1.write(derece);
+        delay(15);
+      }  
+          }
+        }
+      }
+    }
+    if (Firebase.RTDB.get(&fbdo, "led/1")) {
+      if (fbdo.dataType() == "int") {
+        int data = fbdo.intData();
+        if (data == 0) {
+          digitalWrite(D12, LOW);
+        }
+        else if (data == 1) {
+          digitalWrite(D12, HIGH);
+        }
+      }
+    }
+    if (Firebase.RTDB.get(&fbdo, "led/2")) {
+      if (fbdo.dataType() == "int") {
+        int data = fbdo.intData();
+        if (data == 0) {
+          digitalWrite(D13, LOW);
+        }
+        else if (data == 1) {
+          digitalWrite(D13, HIGH);
+        }
+      }
+    }
+    if (Firebase.RTDB.get(&fbdo, "led/3")) {
+      if (fbdo.dataType() == "int") {
+        int data = fbdo.intData();
+        if (data == 0) {
+          digitalWrite(D14, LOW);
+        }
+        else if (data == 1) {
+          digitalWrite(D14, HIGH);
+        }
+      }
+    }
+    if (Firebase.RTDB.get(&fbdo, "led/4")) {
+      if (fbdo.dataType() == "int") {
+        int data = fbdo.intData();
+        if (data == 0) {
+          digitalWrite(D15, LOW);
+        }
+        else if (data == 1) {
+          digitalWrite(D15, HIGH);
+        }
+      }
+    }
+    Serial.print("ortam gaz degeri: ");
+    Serial.println(gas);
+    delay(100);
+    if(gas<50) {
+      digitalWrite(D0, LOW);
+    }
+    if(gas>=50) {
+      digitalWrite(D0, HIGH);
+    } 
+    delay(200);
+  }
+  else {
+    Serial.println("Firebase Baglantisi Saglanamadi");
+  }
+}
